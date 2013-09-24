@@ -42,6 +42,15 @@ def save_posts( soup ):
     list_div_outer = soup("div", {"class": "post-outer"})
     for outer in list_div_outer:
         try:
+            p['timestamp'] = outer.find("abbr",{"itemprop":"datePublished"})['title']
+        except:
+            print "except:timestamp"
+        ## if already got this post
+        if p['timestamp'] in open(log_gotfn,'r').read():
+            print 'skip saving ', p['timestamp']
+            return
+        
+        try:
             p['title']= outer.find("h3").string
         except AttributeError as e:
             print 'title',"AttributeError",e
@@ -53,10 +62,6 @@ def save_posts( soup ):
             p['author'] = outer.find("span",{"class":"post-author vcard"}).find("span",{"itemprop":"author"}).find("span",{"itemprop":"name"}).string
         except AttributeError as e:
             print "author","AttributeError",e
-        try:
-            p['timestamp'] = outer.find("abbr",{"itemprop":"datePublished"})['title']
-        except:
-            print "except:timestamp"
         for key in p.keys():
             print key,p[key]
 
@@ -69,12 +74,13 @@ def save_posts( soup ):
         for key in p.keys():
             f = open(os.path.join(tgtpath,key),'w')
             f.write(p[key].encode('utf8'))
-            f.close
+            f.close()
     # log save success
     logf  = open(os.path.join(script_dir,log_gotfn),'a')
     logf.write( (p['timestamp']+'\n').encode('utf8') )
     logf.write( (p['title']+'\n').encode('utf8') )
-    logf.close
+    logf.closea()
+
 
 def save_imgs( soup ):
     return

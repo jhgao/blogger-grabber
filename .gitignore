@@ -1,4 +1,6 @@
-# sub dir
+# log file
+*.log
+# # sub dir
 */
 # temp file
 *~
