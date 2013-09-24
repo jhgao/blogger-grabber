@@ -1,5 +1,6 @@
 # python 2.7
 
+from time import sleep
 import os
 import sys
 import random
@@ -11,10 +12,11 @@ from bs4 import BeautifulSoup as bs
 # proxy dict for urllib2
 proxy_dict = {'http': '127.0.0.1:8087','https': '127.0.0.1:8087'}
 image_dir = 'images/'
+sleep_between_post = 0
 
 # anchor
 newer_posts_a_id = 'Blog1_blog-pager-newer-link'
-deep_limit = 2
+deep_limit = 150
 log_gotfn = 'gotpost.log'
 
 def randomize_user_agent():
@@ -107,18 +109,22 @@ def save_imgs( soup, path ):
         fn = url.split('/')[-1]
         tgt = os.path.join(imgpath, fn)
         with open(tgt,'wb') as imgf:
-            imgf.write(urllib2.urlopen(url).read())
-            imgf.close()
+            try:
+                imgf.write(urllib2.urlopen(url).read())
+                imgf.close()
+            except:
+                print '[error img]',url
+                errlogfname = os.path.join(imgpath, fn+'.saveerror')
+                errlogf = open(errlogfname,'w')
+                errlogf.write(url)
+                errlogf.close()
 
 def newer_page( soup ):
-    linklist = soup.find_all('a', id=newer_posts_a_id)
-    if len(linklist) > 0:
-        newer_posts = linklist[0].get('href')
-    if newer_posts is None:
-        return
-    else:
-        url = newer_posts
-    return url
+    try:
+        url = soup('a', id=newer_posts_a_id)[0].get('href')
+        return url
+    except:
+        return None
 
 def main(url):
     # proxy for urllib2
@@ -128,7 +134,7 @@ def main(url):
     depth = 1
 
     while url:
-        print
+        print '[depth]',depth
         print '[page]',url
         # send the request with a random user agent in the header
         request = urllib2.Request(url, None, randomize_user_agent())
@@ -141,6 +147,7 @@ def main(url):
         if ( url is None ) or ( depth > deep_limit ):
                 break
         depth = depth + 1
+        sleep(sleep_between_post)
 
 if __name__ == '__main__':
     url = sys.argv[-1]
