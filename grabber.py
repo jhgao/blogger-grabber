@@ -2,6 +2,7 @@
 
 import sys
 import random
+import re
 import urllib2
 import urlparse
 from bs4 import BeautifulSoup as bs
@@ -26,22 +27,51 @@ def randomize_user_agent():
 
     return {'User-Agent': random.choice(user_agents)}
 
+def find_string_div( soup, divclass ):
+    list_div = soup.find_all("div", {"class": divclass})
+    if len(list_div) > 0:
+        return  list_div[0].string
+
 def save_posts( soup ):
-    #print soup.find_all("div", class_="post-outer")
-    print soup.find_all("h3")
+    title = ''
+    body = ''
+    author = ''
+    timestamp = ''
+    list_div_outer = soup("div", {"class": "post-outer"})
+    for outer in list_div_outer:
+        try:
+            title= outer.find("h3").string
+        except AttributeError as e:
+            print 'title',"AttributeError",e
+        try:
+            body= outer.find("div",{"id":re.compile("^post-body")})
+        except :
+            print 'body',"IndexError",e
+        try:
+            author = outer.find("span",{"class":"post-author vcard"}).find("span",{"itemprop":"author"}).find("span",{"itemprop":"name"}).string
+        except AttributeError as e:
+            print "author","AttributeError",e
+        try:
+            timestamp = outer.find("abbr",{"itemprop":"datePublished"})['title']
+        except:
+            print "except:timestamp"
+        print 'title:', title
+        print 'body:',body
+        print 'author:',author
+        print 'timestamp:',timestamp
 
 def save_imgs( soup ):
-        return
+    return
 
 def newer_page( soup ):
-        linklist = soup.find_all('a', id=newer_posts_a_id)
-        if len(linklist) > 0:
-                newer_posts = linklist[0].get('href')
-        if newer_posts is None:
-                return
-        else:
-                url = newer_posts
-        return url
+    linklist = soup.find_all('a', id=newer_posts_a_id)
+    if len(linklist) > 0:
+        newer_posts = linklist[0].get('href')
+    if newer_posts is None:
+        return
+    else:
+        url = newer_posts
+    return url
 
 def main(url):
     # proxy for urllib2
@@ -51,6 +81,7 @@ def main(url):
     depth = 1
 
     while url:
+        print
         print '[page]',url
         # send the request with a random user agent in the header
         request = urllib2.Request(url, None, randomize_user_agent())
