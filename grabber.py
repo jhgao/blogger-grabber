@@ -60,6 +60,9 @@ def save_posts( soup ):
             p['title']= outer.find("h3").string
         except AttributeError as e:
             print 'title',"AttributeError",e
+        hints = p['title'].replace('\r','+')
+        hints = hints.replace('\n','+')
+        p['titlehint'+hints]=''
         try:
             p['body']= outer.find("div",{"id":re.compile("^post-body")})
         except :
