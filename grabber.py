@@ -38,6 +38,12 @@ class post:
     p = {'title':'','body':'','author':'','timestamp':''}
 
 def save_posts( soup ):
+    # touch log file
+    script_dir = os.path.dirname(__file__)
+    logf  = open(os.path.join(script_dir,log_gotfn),'a')
+    logf.close()
+    
+    # save post in to dirs
     p = {'title':'','body':'','author':'','timestamp':''}
     list_div_outer = soup("div", {"class": "post-outer"})
     for outer in list_div_outer:
@@ -67,7 +73,6 @@ def save_posts( soup ):
 
         #save to folder, one by each post
         subdirname = p['timestamp']
-        script_dir = os.path.dirname(__file__)
         tgtpath = os.path.join(script_dir, subdirname)
         if not os.path.exists(tgtpath):
             os.makedirs(tgtpath)
@@ -75,15 +80,32 @@ def save_posts( soup ):
             f = open(os.path.join(tgtpath,key),'w')
             f.write(p[key].encode('utf8'))
             f.close()
+        #save images
+        save_imgs( p['body'] , tgtpath)
+
     # log save success
     logf  = open(os.path.join(script_dir,log_gotfn),'a')
     logf.write( (p['timestamp']+'\n').encode('utf8') )
     logf.write( (p['title']+'\n').encode('utf8') )
-    logf.closea()
+    logf.close()
 
 
-def save_imgs( soup ):
-    return
+def save_imgs( soup, path ):
+    imglist = soup("img")
+    if len(imglist) == 0:
+        return
+
+    imgpath = os.path.join(path, image_dir)
+    if not os.path.exists(imgpath):
+        os.makedirs(imgpath)
+
+    for img in imglist:
+        url = img['src']
+        fn = url.split('/')[-1]
+        tgt = os.path.join(imgpath, fn)
+        with open(tgt,'wb') as imgf:
+            imgf.write(urllib2.urlopen(url).read())
+            imgf.close()
 
 def newer_page( soup ):
     linklist = soup.find_all('a', id=newer_posts_a_id)
@@ -111,7 +133,6 @@ def main(url):
 
         soup = bs(html)
         save_posts(soup)
-        save_imgs(soup)
 
         url = newer_page( soup )
         if ( url is None ) or ( depth > deep_limit ):
