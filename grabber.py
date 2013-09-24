@@ -10,6 +10,10 @@ from bs4 import BeautifulSoup as bs
 proxy_dict = {'http': '127.0.0.1:8087','https': '127.0.0.1:8087'}
 image_dir = 'images/'
 
+# anchor
+newer_posts_a_id = 'Blog1_blog-pager-newer-link'
+deep_limit = 2
+
 def randomize_user_agent():
     user_agents = [
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1309.0 Safari/537.17',
@@ -29,13 +33,14 @@ def save_posts( soup ):
 def save_imgs( soup ):
         return
 
-
 def newer_page( soup ):
-        newer_posts = soup.find(text='newer Posts')
+        linklist = soup.find_all('a', id=newer_posts_a_id)
+        if len(linklist) > 0:
+                newer_posts = linklist[0].get('href')
         if newer_posts is None:
                 return
         else:
-                url = newer_posts.previous['href']
+                url = newer_posts
         return url
 
 def main(url):
@@ -43,6 +48,7 @@ def main(url):
     proxyHandler = urllib2.ProxyHandler(proxy_dict)
     opener = urllib2.build_opener(proxyHandler)
     urllib2.install_opener(opener)
+    depth = 1
 
     while url:
         print '[page]',url
@@ -55,8 +61,9 @@ def main(url):
         save_imgs(soup)
 
         url = newer_page( soup )
-        if url is None:
+        if ( url is None ) or ( depth > deep_limit ):
                 break
+        depth = depth + 1
 
 if __name__ == '__main__':
     url = sys.argv[-1]
