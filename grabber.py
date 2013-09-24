@@ -1,5 +1,6 @@
 # python 2.7
 
+import os
 import sys
 import random
 import re
@@ -14,6 +15,7 @@ image_dir = 'images/'
 # anchor
 newer_posts_a_id = 'Blog1_blog-pager-newer-link'
 deep_limit = 2
+log_gotfn = 'gotpost.log'
 
 def randomize_user_agent():
     user_agents = [
@@ -32,33 +34,47 @@ def find_string_div( soup, divclass ):
     if len(list_div) > 0:
         return  list_div[0].string
 
+class post:
+    p = {'title':'','body':'','author':'','timestamp':''}
+
 def save_posts( soup ):
-    title = ''
-    body = ''
-    author = ''
-    timestamp = ''
+    p = {'title':'','body':'','author':'','timestamp':''}
     list_div_outer = soup("div", {"class": "post-outer"})
     for outer in list_div_outer:
         try:
-            title= outer.find("h3").string
+            p['title']= outer.find("h3").string
         except AttributeError as e:
             print 'title',"AttributeError",e
         try:
-            body= outer.find("div",{"id":re.compile("^post-body")})
+            p['body']= outer.find("div",{"id":re.compile("^post-body")})
         except :
             print 'body',"IndexError",e
         try:
-            author = outer.find("span",{"class":"post-author vcard"}).find("span",{"itemprop":"author"}).find("span",{"itemprop":"name"}).string
+            p['author'] = outer.find("span",{"class":"post-author vcard"}).find("span",{"itemprop":"author"}).find("span",{"itemprop":"name"}).string
         except AttributeError as e:
             print "author","AttributeError",e
         try:
-            timestamp = outer.find("abbr",{"itemprop":"datePublished"})['title']
+            p['timestamp'] = outer.find("abbr",{"itemprop":"datePublished"})['title']
         except:
             print "except:timestamp"
-        print 'title:', title
-        print 'body:',body
-        print 'author:',author
-        print 'timestamp:',timestamp
+        for key in p.keys():
+            print key,p[key]
+
+        #save to folder, one by each post
+        subdirname = p['timestamp']
+        script_dir = os.path.dirname(__file__)
+        tgtpath = os.path.join(script_dir, subdirname)
+        if not os.path.exists(tgtpath):
+            os.makedirs(tgtpath)
+        for key in p.keys():
+            f = open(os.path.join(tgtpath,key),'w')
+            f.write(p[key].encode('utf8'))
+            f.close
+    # log save success
+    logf  = open(os.path.join(script_dir,log_gotfn),'a')
+    logf.write( (p['timestamp']+'\n').encode('utf8') )
+    logf.write( (p['title']+'\n').encode('utf8') )
+    logf.close
 
 def save_imgs( soup ):
     return
