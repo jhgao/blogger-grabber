@@ -16,7 +16,7 @@ sleep_between_post = 0
 
 # anchor
 newer_posts_a_id = 'Blog1_blog-pager-newer-link'
-deep_limit = 150
+num_limit = 150
 log_gotfn = 'gotpost.log'
 
 def randomize_user_agent():
@@ -35,9 +35,6 @@ def find_string_div( soup, divclass ):
     list_div = soup.find_all("div", {"class": divclass})
     if len(list_div) > 0:
         return  list_div[0].string
-
-class post:
-    p = {'title':'','body':'','author':'','timestamp':''}
 
 def save_posts( soup ):
     # touch log file
@@ -64,6 +61,7 @@ def save_posts( soup ):
             print 'title',"AttributeError",e
         hints = p['title'].replace('\r','+')
         hints = hints.replace('\n','+')
+        print hints
         p['titlehint'+hints]=''
         try:
             p['body']= outer.find("div",{"id":re.compile("^post-body")})
@@ -73,8 +71,6 @@ def save_posts( soup ):
             p['author'] = outer.find("span",{"class":"post-author vcard"}).find("span",{"itemprop":"author"}).find("span",{"itemprop":"name"}).string
         except AttributeError as e:
             print "author","AttributeError",e
-        for key in p.keys():
-            print key,p[key]
 
         #save to folder, one by each post
         subdirname = p['timestamp']
@@ -86,7 +82,7 @@ def save_posts( soup ):
             f.write(p[key].encode('utf8'))
             f.close()
         #save images
-        save_imgs( p['body'] , tgtpath)
+        save_imgs_in_soup( p['body'] , tgtpath)
 
     # log save success
     logf  = open(os.path.join(script_dir,log_gotfn),'a')
@@ -94,30 +90,41 @@ def save_posts( soup ):
     logf.write( (p['title']+'\n').encode('utf8') )
     logf.close()
 
-
-def save_imgs( soup, path ):
+def save_imgs_in_soup( soup, todir):
     imglist = soup("img")
     if len(imglist) == 0:
         return
 
-    imgpath = os.path.join(path, image_dir)
+    imgpath = os.path.join(todir, image_dir)
     if not os.path.exists(imgpath):
         os.makedirs(imgpath)
 
     for img in imglist:
-        url = img['src']
-        fn = url.split('/')[-1]
-        tgt = os.path.join(imgpath, fn)
-        with open(tgt,'wb') as imgf:
+        try:
+            ourl = img.parent.get('href')
+            ofn = os.path.join(imgpath,'o'+ourl.split('/')[-1])
+            save_img_in_url(ourl,ofn)
+        except :
+            print '[faild orig img]', ourl
             try:
-                imgf.write(urllib2.urlopen(url).read())
-                imgf.close()
+                surl = img['src']
+                sfn = os.path.join(imgpath,'s'+surl.split('/')[-1])
+                save_img_in_url(surl,sfn)
             except:
-                print '[error img]',url
-                errlogfname = os.path.join(imgpath, fn+'.saveerror')
-                errlogf = open(errlogfname,'w')
-                errlogf.write(url)
-                errlogf.close()
+                print '[faild img]',surl
+
+def save_img_in_url(url,fn):
+    try:
+        with open(fn,'wb') as f:
+            f.write(urllib2.urlopen(url).read())
+            f.close()
+            print 'img',url
+    except :
+        logfn = fn+'.saveerror'
+        l = open(logfn,'w')
+        l.write(url)
+        l.close()
+
 
 def newer_page( soup ):
     try:
@@ -126,27 +133,30 @@ def newer_page( soup ):
     except:
         return None
 
+def fetch_html(url):
+    # send the request with a random user agent in the header
+    request = urllib2.Request(url, None, randomize_user_agent())
+    return urllib2.urlopen(request)
+
 def main(url):
     # proxy for urllib2
     proxyHandler = urllib2.ProxyHandler(proxy_dict)
     opener = urllib2.build_opener(proxyHandler)
     urllib2.install_opener(opener)
-    depth = 1
+    step = 1
 
     while url:
-        print '[depth]',depth
-        print '[page]',url
-        # send the request with a random user agent in the header
-        request = urllib2.Request(url, None, randomize_user_agent())
-        html = urllib2.urlopen(request)
+        print
+        print 'step',step
+        print 'page',url
 
-        soup = bs(html)
+        soup = bs(fetch_html(url))
         save_posts(soup)
 
         url = newer_page( soup )
-        if ( url is None ) or ( depth > deep_limit ):
+        if ( url is None ) or ( step > num_limit ):
                 break
-        depth = depth + 1
+        step = step + 1
         sleep(sleep_between_post)
 
 if __name__ == '__main__':

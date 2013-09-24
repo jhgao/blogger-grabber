@@ -1,5 +1,5 @@
 # log file
-*.log
+*.log*
 # # sub dir
 */
 # temp file
