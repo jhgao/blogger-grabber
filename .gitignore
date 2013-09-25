@@ -1,3 +1,6 @@
+# archive
+*.zip
+*.tar*
 # log file
 *.log*
 # # sub dir

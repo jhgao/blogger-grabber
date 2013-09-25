@@ -40,28 +40,38 @@ def prob_save_post( soup ):
     p = {'title':'','body':'','author':'','timestamp':''}
     list_div_outer = soup("div", {"class": "post-outer"})
     for outer in list_div_outer:
-        try:
+        try: # time stamp
             p['timestamp'] = outer.find("abbr",{"itemprop":"datePublished"})['title']
             if 0 == len(p['timestamp']):
-                raise NoTimestampError()
+                print 'post missing timestamp'
+                raise NoTimestampError
+            else:
+                print p['timestamp']
+        except:
+            raise NoTimestampError
 
-            if p['timestamp'] in open(log_gotfn,'r').read(): #skip post already saved
-                print 'skip saving ', p['timestamp']
-                return
-
+        if p['timestamp'] in open(log_gotfn,'r').read(): #skip post already saved
+            print 'skip saving'
+            return
+            
+        try: # title
             p['title']= outer.find("h3").string
-            hints = p['title'].replace('\r','+')
-            hints = hints.replace('\n','+')
-            print hints
-            p['titlehint'+hints]=''
+            titleline = p['title'].replace('\r','+')
+            titleline = titleline .replace('\n','+')
+            print titleline 
+            p['titleline'+ titleline ]=''
+        except:
+            print 'post title error'
 
+        try: # body
             p['body']= outer.find("div",{"id":re.compile("^post-body")})
-
+        except:
+            print 'post body error'
+        
+        try: # author
             p['author'] = outer.find("span",{"class":"post-author vcard"}).find("span",{"itemprop":"author"}).find("span",{"itemprop":"name"}).string
-        except Exception as e:
-            for key in p.keys():
-                if 0 == len(p[key]):
-                    print 'post missing :', key
+        except:
+            print 'post author error'
 
         #save post in folder
         subdirname = p['timestamp']
@@ -74,7 +84,8 @@ def prob_save_post( soup ):
             f.close()
 
         #save images in the post
-        save_imgs_in_soup( p['body'] , tgtpath)
+        if len(p['body']) > 0 :
+            save_imgs_in_soup( p['body'] , tgtpath)
 
     # log save success
     logf  = open(os.path.join(script_dir,log_gotfn),'a')
@@ -84,7 +95,7 @@ def prob_save_post( soup ):
 
 def save_imgs_in_soup( soup, todir):
     '''try to get original img, fall back to direct img'''
-    imglist = soup("img")
+    imglist = soup('img')
     if len(imglist) == 0:
         return
 
