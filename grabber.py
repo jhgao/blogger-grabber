@@ -9,14 +9,18 @@ import urllib2
 import urlparse
 from bs4 import BeautifulSoup as bs
 
+import grabimgurl as gimg
+
 # proxy dict for urllib2
 proxy_dict = {'http': '127.0.0.1:8087','https': '127.0.0.1:8087'}
 image_dir = 'images/'
 sleep_between_post = 0
+num_limit = 150
+max_depth_img_url = 3
+
 
 # anchor
 newer_posts_a_id = 'Blog1_blog-pager-newer-link'
-num_limit = 150
 log_gotfn = 'gotpost.log'
 
 def randomize_user_agent():
@@ -91,6 +95,7 @@ def save_posts( soup ):
     logf.close()
 
 def save_imgs_in_soup( soup, todir):
+    '''try to get original img, fall back to direct img'''
     imglist = soup("img")
     if len(imglist) == 0:
         return
@@ -103,27 +108,17 @@ def save_imgs_in_soup( soup, todir):
         try:
             ourl = img.parent.get('href')
             ofn = os.path.join(imgpath,'o'+ourl.split('/')[-1])
-            save_img_in_url(ourl,ofn)
-        except :
+            gimg.save_img_in_url(ourl,ofn,max_depth_img_url,1, proxy_dict, randomize_user_agent())
+        except Exception as e:
+            print e
             print '[faild orig img]', ourl
             try:
                 surl = img['src']
                 sfn = os.path.join(imgpath,'s'+surl.split('/')[-1])
-                save_img_in_url(surl,sfn)
-            except:
+                gimg.save_img_in_url(surl,sfn,max_depth_img_url,1, proxy_dict, randomize_user_agent())
+            except Exception as e:
+                print e
                 print '[faild img]',surl
-
-def save_img_in_url(url,fn):
-    try:
-        with open(fn,'wb') as f:
-            f.write(urllib2.urlopen(url).read())
-            f.close()
-            print 'img',url
-    except :
-        logfn = fn+'.saveerror'
-        l = open(logfn,'w')
-        l.write(url)
-        l.close()
 
 
 def newer_page( soup ):
