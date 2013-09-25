@@ -1,40 +1,35 @@
-import urllib2
+import urlproxy as urlp
 from bs4 import BeautifulSoup as bs
 
-class Error(Exception):
+class GrabImgError(Exception):
     pass
 
-class OpenUrlError(Error):
+class OpenUrlError(GrabImgError):
     def __init__(self, url, msg):
         self.url = url
         self.msg = msg
 
-class TooDeepError(Error):
+class TooDeepError(GrabImgError):
     def __init__(self, maxdeep):
         self.maxdeep = maxdeep
 
-class ImgNotFoundError(Error):
+class ImgNotFoundError(GrabImgError):
     def __init__(self, url, msg):
         self.url = url
         self.msg = msg
         
-def save_img_in_url(url, fn='tempimg', maxdepth=1, currentdepth=1, proxy_dict={}, user_agent=[] ):
+def save_img_in_url(url, fn='tempimg', maxdepth=1, currentdepth=1 ):
     try:
         if currentdepth > maxdepth:
             raise TooDeepError( maxdepth )
-        # proxy for urllib2
-        proxyHandler = urllib2.ProxyHandler(proxy_dict)
-        opener = urllib2.build_opener(proxyHandler)
-        urllib2.install_opener(opener)
- 
-        # get url
-        request = urllib2.Request(url, None, user_agent)
-        goturl = urllib2.urlopen(request)
+
+        # get resource
+        goturl = urlp.fetch_url(url)
 
         # check type and save
         if 'image' ==  goturl.info().getmaintype():
             with open(fn,'wb') as f:
-                f.write(urllib2.urlopen(url).read())
+                f.write(urlp.fetch_url(url).read())
                 f.close()
                 dmsg('saved img:'+url)
 
@@ -50,12 +45,12 @@ def save_img_in_url(url, fn='tempimg', maxdepth=1, currentdepth=1, proxy_dict={}
         else:
             raise OpenUrlError(url,'unknown type' + goturl.info().gettype())
 
-    except Exception as e:
+    except:
         logfn = fn+'.saveerror'
         l = open(logfn,'w')
         l.write(url)
         l.close()
-        raise e
+        raise GrabImgError
 
 def dmsg(msg):
-    print ' [grabimgurl DMSG]',msg
+    print ' [grabimgurl]',msg

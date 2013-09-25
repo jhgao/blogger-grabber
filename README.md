@@ -3,4 +3,6 @@ blogger-grabber
 
 down load blog post from blogger
 
-some settings in the front of py file, change them if needed.
+set proxy in urlproxy.py
+
+run grabber.py with the oldest post of your blog
